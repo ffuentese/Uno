@@ -9,7 +9,11 @@ __author__ = 'Francisco Fuentes'
 Card = collections.namedtuple('Card', ['rank', 'suit'])
 
 
+
 class UnoDeck:
+    """
+    Esta clase controla el mazo de cartas de UNO.
+    """
     special_color = ['+2', 'Salta', 'Reversa']
     ranks = [str(n) for n in range(0, 1)] + [str(n) for n in range(1, 10)] * 2 + special_color * 2
     suits = 'rojo azul amarillo verde'.split()
@@ -17,6 +21,9 @@ class UnoDeck:
     w_suits = ["Negra"]
 
     def __init__(self):
+        """
+        Crea una instancia del objeto. Genera un mazo con las 108 cartas.
+        """
         self._cards = [Card(rank, suit) for suit in self.suits
                        for rank in self.ranks]
         wildcard = [Card(rank, suit) for suit in self.w_suits
@@ -34,9 +41,16 @@ class UnoDeck:
         deck._cards[position] = card
 
     def get_deck(self):
+        """
+        Retorna un mazo.
+        """
         return self._cards;
 
     def refill_deck(self, cards):
+        """
+        En caso de que el mazo quede sin cartas,
+        rellena el mazo (self._cards) con las cartas ya jugadas
+        """
         self._cards.extend(cards)
 
 
@@ -278,8 +292,8 @@ class GameFlow:
             p.set_hand(self._deck)
         self._discard = [self._deck.get_deck().pop()]
         self._game_cycle = Cycle(self._players)
-        p = list(map(lambda x: print(x.get_name(), " parte con: ", x.get_hand()), self._players))
-        p
+        # p = list(map(lambda x: print(x.get_name(), " parte con: ", x.get_hand()), self._players))
+
 
     def eval_card(self, carta, current_player, next_player):
 
@@ -294,10 +308,10 @@ class GameFlow:
             print(current_player.get_name(), " juega carta y hace perder turno a su vecino.")
             if next_player.isHuman():
                 input()
-        if carta.rank == 'Reversa':
+        elif carta.rank == 'Reversa':
             self._game_cycle.reverse()
             print("El sentido del juego se revierte!")
-        if carta.rank == '+2':
+        elif carta.rank == '+2':
             new_cards = self._deck.get_deck()[-2:]
             del self._deck.get_deck()[-2:]
             next_player.get_hand().extend(new_cards)
@@ -305,7 +319,7 @@ class GameFlow:
             if next_player.isHuman():
                 input()
             self._game_cycle.__next__()
-        if carta.rank == '+4':
+        elif carta.rank == '+4':
             new_cards = self._deck.get_deck()[-4:]
             del self._deck.get_deck()[-4:]
             next_player.get_hand().extend(new_cards)
@@ -313,38 +327,59 @@ class GameFlow:
             if next_player.isHuman():
                 input()
             self._game_cycle.__next__()
+        else:
+            print(current_player.get_name(), "juega rango:", carta.rank, "color:", carta.suit)
+
         if carta.suit == 'Negra':
             del self._discard[-1:]
-            new_color = choice(UnoDeck.suits)
-            print(current_player.get_name(), " ha elegido ", new_color)
-            new_card = Card(carta.rank, new_color)
-            self._discard.append(new_card)
+            new_card = None
+            new_color = ''
+            suits = UnoDeck.suits
+            if current_player.isHuman():
+                while not new_color:
+                    for suit in suits:
+                        print("Color: ",suit,"digita: ",suits.index(suit))
+                    color_input = input("Selecciona el nuevo color:")
+                    color_choice = int(color_input) if color_input.isdigit() else -1
+                    if color_choice >= 0 and color_choice < len(suits):
+                        new_color = suits[color_choice]
+                        new_card = Card(carta.rank, new_color)
+                    else:
+                        continue
+            else:
+                new_color = choice(suits)
+                new_card = Card(carta.rank, new_color)
 
-    def human_turn(self, current_player, active_card, keep, picked_card):
+            self._discard.append(new_card)
+            print(current_player.get_name(), " ha elegido ", new_color)
+
+
+
+
+    def human_turn(self, current_player, active_card, keep, carta):
         current_hand = current_player.get_hand()
+        next_player = self._game_cycle.get_next()
         print("Tienes estas cartas para jugar: ")
         for i in current_hand:
             print("Rango: ", i.rank, "Color: ", i.suit, "Digita: ", current_hand.index(i))
-        n = input("Digita el número de la carta o d para sacar una carta del mazo y p para pasar")
-        if n.isdigit() and int(n) <= len(current_hand) - 1:
+        n = input("Digita el número de la carta o d para sacar una carta del mazo:")
+        if n.isnumeric() and int(n) <= len(current_hand) - 1:
             v = int(n)
             for i in current_player.check_card(active_card):
                 if current_player.get_hand()[v] == i:
                     carta = i
                     current_player.get_hand().pop(v)
                     keep = False
+                    self._discard.append(carta)
+                    self.eval_card(carta, current_player, next_player)
+                    break
+            # self._discard.append(carta)
+            # self.eval_card(carta, current_player, next_player)
         elif n.lower() == 'd':
             if not self._deck.get_deck():
                 self._deck.refill_deck(self._discard)
             current_player.pick_card(self._deck.get_deck())
-            picked_card = True
-        elif n.lower() == 'p':
-            if picked_card:
-                keep = False
-            else:
-                current_player.pick_card(self._deck.get_deck())
-                picked_card = True
-                keep = False
+            print(current_player.get_name(),"toma una carta")
         return keep
 
     def start_game(self):
@@ -353,18 +388,19 @@ class GameFlow:
         :param game_cycle:
         :return: None
         """
+        print("COMIENZA EL JUEGO!\n")
         while True:
+            time.sleep(5)
             current_player = self._game_cycle.__next__()
             active_card = self._discard[len(self._discard) - 1]
             carta = ''
-            print("El turno es de ", current_player.get_name())
+            print("\nEl turno es de ", current_player.get_name())
             print("La carta sobre la mesa es Rango: ", active_card.rank, "color: ", active_card.suit)
-            # print("El mazo de ", current_player.get_name(), " es ", current_player.get_hand())
             if current_player.isHuman():
+                print("TE TOCA!\n")
                 keep = True
-                picked_card = False
                 while keep:
-                    keep = self.human_turn(current_player, active_card, keep, picked_card)
+                    keep = self.human_turn(current_player, active_card, keep, carta)
             else:
                 carta = current_player.play_card(active_card)
 
@@ -379,10 +415,16 @@ class GameFlow:
                     # si no hay cartas en el mazo lo rellena con las cartas ya jugadas
                     self._deck.refill_deck(self._discard)
                     current_player.pick_card(self._deck.get_deck())
+                print(current_player.get_name(), "toma una carta")
                 carta = current_player.play_card(active_card)
                 if carta:
                     self._discard.append(carta)
                     self.eval_card(carta, current_player, next_player)
-            if len(current_player.get_hand()) == 0:
+            cards_left = len(current_player.get_hand())
+            if cards_left > 1:
+                print("A",current_player.get_name(),"le quedan",cards_left,"cartas")
+            elif len(current_player.get_hand()) == 1:
+                print("\nUNO!", current_player.get_name(), " tiene sólo 1 carta!!!!\n")
+            elif len(current_player.get_hand()) == 0:
                 print(current_player.get_name(), " ha ganado!")
                 return False

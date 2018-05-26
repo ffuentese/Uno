@@ -59,12 +59,19 @@ def human_player():
     :return: Objeto Player (un jugador) identificado como humano
     """
     nombre = input("Escribe tu nombre: ")
-    h = Player(nombre)
-    h.set_human()
-    return h
+    if nombre:
+        h = Player(nombre)
+        h.set_human()
+        return h
+    else:
+        return human_player()
 
 
 def game():
+    """
+    Agrupa todas las funciones que componen el juego en orden secuencial.
+    :return: Un valor verdadero en caso que el usuario quiera jugar y falso para cerrar.
+    """
     nplayers = start()
     players = cpu_players(nplayers)
     h = human_player()
@@ -73,7 +80,7 @@ def game():
     gf = GameFlow(deck, players)
     gf.set_game()
     gf.start_game()
-    restart = input("Play again? Type Y or any other to quit ")
+    restart = input("Presiona Y para volver a jugar y cualquier otra para terminar ")
     print(restart.upper())
     if restart.lower() == 'y':
         return True
