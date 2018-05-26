@@ -356,13 +356,13 @@ class GameFlow:
 
 
 
-    def human_turn(self, current_player, active_card, keep, carta):
+    def human_turn(self, current_player, active_card, keep, carta, t):
         current_hand = current_player.get_hand()
         next_player = self._game_cycle.get_next()
         print("Tienes estas cartas para jugar: ")
         for i in current_hand:
             print("Rango: ", i.rank, "Color: ", i.suit, "Digita: ", current_hand.index(i))
-        n = input("Digita el número de la carta o d para sacar una carta del mazo:")
+        n = input("Digita el número de la carta, d para sacar una carta del mazo o p para pasar:")
         if n.isnumeric() and int(n) <= len(current_hand) - 1:
             v = int(n)
             for i in current_player.check_card(active_card):
@@ -380,6 +380,14 @@ class GameFlow:
                 self._deck.refill_deck(self._discard)
             current_player.pick_card(self._deck.get_deck())
             print(current_player.get_name(),"toma una carta")
+        elif n.lower() == 'p':
+            if t == 0:
+                if not self._deck.get_deck():
+                    self._deck.refill_deck(self._discard)
+                current_player.pick_card(self._deck.get_deck())
+                print(current_player.get_name(),"toma una carta")
+            keep = False
+
         return keep
 
     def start_game(self):
@@ -399,8 +407,10 @@ class GameFlow:
             if current_player.isHuman():
                 print("TE TOCA!\n")
                 keep = True
+                t = 0
                 while keep:
-                    keep = self.human_turn(current_player, active_card, keep, carta)
+                    keep = self.human_turn(current_player, active_card, keep, carta, t)
+                    t += 1
             else:
                 carta = current_player.play_card(active_card)
 
